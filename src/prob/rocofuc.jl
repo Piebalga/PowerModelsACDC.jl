@@ -19,7 +19,7 @@ a multi-network FCUC formulation with per-hour UC submodels, contingency constra
 global objective that includes frequency-related cost terms.
 """
 function solve_rocofuc(data::Dict{String,Any}, model_type::Type, optimizer; kwargs...)
-    return _PM.solve_model(data, model_type, optimizer, build_rocofuc; ref_extensions = [add_ref_dcgrid!, ref_add_flex_load!, ref_add_pst!, ref_add_sssc!, ref_add_gendc!], kwargs...)
+    return _PM.solve_model(data, model_type, optimizer, build_rocofuc; ref_extensions = [add_ref_dcgrid!, ref_add_flex_load!, ref_add_pst!, ref_add_sssc!, ref_add_gendc!, ref_add_im!], kwargs...)
 end
 
 """
@@ -59,6 +59,7 @@ Build the per-hour Unit Commitment (UC) submodel for network/time-index `n`.
         variable_flexible_demand(pm; nw = n)
         variable_pst(pm; nw = n)
         variable_sssc(pm; nw = n)
+        variable_im(pm; nw= n)
         variable_storage_on_off(pm; nw = n)
         constraint_voltage_dc(pm; nw = n)
     end
@@ -134,8 +135,8 @@ Build the per-hour Unit Commitment (UC) submodel for network/time-index `n`.
         end
 
         for cid in _PM.ref(pm, n, :cont_ids)
-            for i in _PM.ids(pm, n, :zones)
-                constraint_rocof_split(pm, i, cid; nw = n)
+            for (i, zone) in _PM.ref(pm, n, :zones, cid)
+                constraint_rocof_split(pm, parse(Int, i), cid; nw = n)
             end
         end
     end

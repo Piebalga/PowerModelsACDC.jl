@@ -1116,16 +1116,16 @@ function constraint_rocof_split(pm::_PM.AbstractPowerModel, zone_id, cont_id; nw
         f0 = _PM.ref(pm, nw, :frequency_parameters)["f0"]
 
 
-        return constraint_rocof_split(pm::_PM.AbstractPowerModel, nw, zone_id, generator_properties[zone_id], storage_properties[zone_id], rocof_max, rocof_min, f0, tielines_fr[zone_id], tielines_to[zone_id])
+        return constraint_rocof_split(pm::_PM.AbstractPowerModel, nw, zone_id, cont_id, generator_properties[zone_id], storage_properties[zone_id], rocof_max, rocof_min, f0, tielines_fr[zone_id], tielines_to[zone_id])
     end
 end
 
-function constraint_rocof_split(pm::_PM.AbstractPowerModel, n::Int, zone_id, generator_properties, storage_properties, rocof_max, rocof_min, f0, tielines_fr, tielines_to)
+function constraint_rocof_split(pm::_PM.AbstractPowerModel, n::Int, zone_id, cont_id, generator_properties, storage_properties, rocof_max, rocof_min, f0, tielines_fr, tielines_to)
     αg = _PM.var(pm, n, :alpha_g) # committed generators
     αs = _PM.var(pm, n, :alpha_s) # committed storage
     p = _PM.var(pm, n, :p) # branch flows
 
-    ΔPsplit = _PM.var(pm, n, :split_cont, zone_id)
+    ΔPsplit = _PM.var(pm, n, :split_cont)[cont_id, zone_id]
 
     JuMP.@constraint(pm.model,  ΔPsplit ==  sum(p[a] for a in tielines_fr) + sum(p[a] for a in tielines_to)) # This makes the split event to the some of the power flows defined as outgoing, sum([p[l,i,j] for (l,i,j) in tielines_fr]) +
 

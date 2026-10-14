@@ -249,19 +249,35 @@ Creates a continuous variable for the RoCoF dimensioing incident based on a give
 """
 function variable_split_contingency(pm::_PM.AbstractPowerModel; nw::Int=_PM.nw_id_default, bounded::Bool = true, report::Bool=true)
     δPsplit = _PM.var(pm, nw)[:split_cont] = JuMP.@variable(pm.model,
-    [i in _PM.ids(pm, nw, :zones)], base_name="$(nw)_split_cont",
+    [i in _PM.ref(pm, nw, :cont_ids), j in 1:10], base_name="$(nw)_split_cont",
     start = 0.0
     )
 
     if bounded
-        pg_max = maximum([gen["pmax"] for (g, gen) in _PM.ref(pm, nw, :gen)])
-        for (z, zone) in _PM.ref(pm, nw, :zones)
-            JuMP.set_lower_bound(δPsplit[z], -50e3) # setting an arbitrary value for now, this should be set to the maximum power that can be lost in a split.
-            JuMP.set_upper_bound(δPsplit[z],  50e3) # setting an arbitrary value for now, this should be set to the maximum power that can be lost in a split.
+        #pg_max = maximum([gen["pmax"] for (g, gen) in _PM.ref(pm, nw, :gen)])
+        for i in _PM.ref(pm, nw, :cont_ids)
+            for (z, zone) in _PM.ref(pm, nw, :zones, i)
+                JuMP.set_lower_bound(δPsplit[i, parse(Int, z)], -50e3) # setting an arbitrary value for now, this should be set to the maximum power that can be lost in a split.
+                JuMP.set_upper_bound(δPsplit[i, parse(Int, z)],  50e3) # setting an arbitrary value for now, this should be set to the maximum power that can be lost in a split.
+            end
         end
     end
 
-    report && _PM.sol_component_value(pm, nw, :contingency, :split_cont, _PM.ids(pm, nw, :zones), δPsplit)
+    sol_component_value_matrix(pm, nw, :contingency, _PM.ref(pm, nw, :cont_ids), 1:10,  δPsplit)
+end
+
+
+function sol_component_value_matrix(aim, n::Int, comp_name::Symbol, dim1_ids, dim2_ids, variables)
+    #_IM.sol(aim, _PM.pm_it_sym, n, comp_name)[field_name] = zeros(length(dim1_ids), length(dim2_ids))
+    #_IM.sol(aim, _PM.pm_it_sym, n, comp_name)[field_name] = variables
+
+    for i in dim1_ids
+        for j in dim2_ids
+        #@assert !haskey(sol(aim, it, n, comp_name, i), field_name)
+            field_name = Symbol("Cont_", i, "_Zone_", j)
+            _IM.sol(aim, _PM.pm_it_sym, n, comp_name)[field_name] = variables[i, j]
+        end
+    end
 end
 
 #### CONSTRAINTS
